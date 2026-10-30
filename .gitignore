@@ -1,0 +1,19 @@
+# Environnement virtuel
+venv/
+.venv/
+
+# Données lourdes (SQuAD)
+data/
+*.json
+*.arrow
+
+# Modèles sauvegardés
+saved_model/
+*.pth
+
+# Cache Python
+__pycache__/
+*.pyc
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/

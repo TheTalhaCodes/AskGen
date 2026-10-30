@@ -7,6 +7,8 @@ import os
 # On charge le tokenizer de spaCy (le petit modèle anglais)
 try:
     nlp = spacy.load("en_core_web_sm") # permet de découper le texte en tokens intelligemment
+    for token in ["<pad>", "<unk>", "<start>", "<end>", "<sep>"]:
+        nlp.tokenizer.add_special_case(token, [{spacy.symbols.ORTH: token}])
 except OSError:
     print("Attention : spaCy n'a pas trouvé 'en_core_web_sm'. Lance : python -m spacy download en_core_web_sm")
     raise
@@ -14,11 +16,11 @@ except OSError:
 # 1- classe qui gere le vocabulaire (dictionnaire mot -> id et id -> mot)
 class Vocab:
     def __init__(self):
-        self.pad_token = "<PAD>"
-        self.unk_token = "<UNK>"
-        self.start_token = "<START>"
-        self.end_token = "<END>"
-        self.sep_token = "<SEP>"
+        self.pad_token = "<pad>"
+        self.unk_token = "<unk>"
+        self.start_token = "<start>"
+        self.end_token = "<end>"
+        self.sep_token = "<sep>"
         
         # On initialise le dictionnaire avec nos tokens spéciaux
         self.word2id = {
@@ -55,15 +57,19 @@ class Vocab:
         return " ".join([self.id2word.get(i, self.unk_token) for i in ids])
 
 
-# --- 2. Classe Dataset PyTorch ---
+# 2. Classe Dataset PyTorch
+""" 
+En Pyytorch , pour donner des donnees à un modèle, on crée une classe
+qui hérite de torch.utils.data.Dataset.
+"""
 class QGDataset(Dataset):
     def __init__(self, hf_dataset, vocab, max_src_len=100, max_tgt_len=20):
         self.data = hf_dataset
         self.vocab = vocab
-        self.max_src_len = max_src_len
-        self.max_tgt_len = max_tgt_len
+        self.max_src_len = max_src_len # longueur maximale de la source (contexte + réponse)
+        self.max_tgt_len = max_tgt_len # longueur maximale de la cible (question)
         
-    def __len__(self):
+    def __len__(self): # connaitre la taille du dataset
         return len(self.data)
     
     def __getitem__(self, idx):
@@ -72,26 +78,27 @@ class QGDataset(Dataset):
         # SQuAD peut avoir plusieurs réponses, on prend la première
         answer = item['answers']['text'][0]
         
-        # Créer l'Input (Source) : Contexte + <SEP> + Réponse
-        src_text = f"{item['context']} {self.vocab.sep_token} {answer}"
+        # 1. On encode le contexte et la réponse séparément
+        context_ids = self.vocab.encode(item['context'])
+        answer_ids = self.vocab.encode(answer)
+        sep_id = self.vocab.word2id[self.vocab.sep_token]
         
-        # Créer la Target : <START> + Question + <END>
+        # 2. Troncature intelligente pour la Source
+        # On calcule la place qu'il reste pour le contexte
+        max_context_len = self.max_src_len - len(answer_ids) - 1
+        context_ids = context_ids[:max_context_len]
+        
+        # 3. On recolle : [Contexte tronqué] + <sep> + [Réponse]
+        src_ids = context_ids + [sep_id] + answer_ids
+        
+        # 4. Créer la Target
         tgt_text = f"{self.vocab.start_token} {item['question']} {self.vocab.end_token}"
+        tgt_ids = self.vocab.encode(tgt_text)[:self.max_tgt_len]
         
-        # Encoder (transformer en nombres)
-        src_ids = self.vocab.encode(src_text)
-        tgt_ids = self.vocab.encode(tgt_text)
-        
-        # Tronquer (Truncation) si c'est trop long
-        src_ids = src_ids[:self.max_src_len]
-        tgt_ids = tgt_ids[:self.max_tgt_len]
-        
-        # Retourner des tenseurs PyTorch
-        return torch.tensor(src_ids), torch.tensor(tgt_ids)
-
-
-# --- 3. Fonction de Padding (Collate) ---
-def collate_fn(batch):
+        return torch.tensor(src_ids), torch.tensor(tgt_ids) # convertit les données en un format que la machine peut 
+                                                            # calculer mathématiquement et sur lequel elle peut faire de l'apprentissage
+#  3. Fonction de Padding  
+def collate_fn(batch): # Prend plusieurs phrases et les empile dans une matrice 2D (le batch).
     """
     Prend un batch de phrases de longueurs différentes et ajoute des <PAD> 
     pour que toutes les phrases d'un batch aient la même taille.
@@ -105,7 +112,7 @@ def collate_fn(batch):
     return src_padded, tgt_padded
 
 
-# --- 4. Bloc de test (s'exécute seulement si on lance 'python src/dataset.py') ---
+#  Test (s'exécute seulement si on lance 'python src/dataset.py') 
 if __name__ == "__main__":
     from datasets import load_dataset
     
