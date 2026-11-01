@@ -40,14 +40,16 @@ class Attention(nn.Module):
     def __init__(self,hidden_dim):
         super().__init__()
         
-        self.att = nn.Linear(hidden_dim*3,hidden_dim) # calcule 
+        self.att = nn.Linear(hidden_dim*3,hidden_dim) #couche qui calcule l'énergie d'attention
+        
+        self.v = nn.Linear(hidden_dim, 1, bias=False) # La couche pour transformer l'énergie en un score unique (un nombre)
         
     def forward(self,hidden,encoder_outputs): 
         
-        batch_size = encoder_outputs.shape[0]
+        batch_size = encoder_outputs.shape[0] # 
         src_len = encoder_outputs.shape[1]
         
-        hidden = hidden.unsqueeze(1).repeat(1,src_len,1)
+        hidden = hidden.unsqueeze(1).repeat(1,src_len,1) # fait une copie de l'état caché pour chaque mot de la séquence d'entrée
         
         energy = torch.tanh(self.att(torch.cat((hidden, encoder_outputs), dim=2)))    
         attention = self.v(energy).squeeze(2)
@@ -64,7 +66,7 @@ class Decoder(nn.Module):
         self.lstm = nn.LSTM(embed_dim + hidden_dim*2, hidden_dim, num_layers=num_layers,
                              batch_first=True, dropout=dropout)
         
-        self.fc_out = nn.Linear(hidden_dim*3, vocab_size) 
+        self.fc_out = nn.Linear(hidden_dim*3 + embed_dim, vocab_size) 
         
     def forward(self, input_token, hidden, cell, encoder_outputs):
         
@@ -74,9 +76,9 @@ class Decoder(nn.Module):
         a = self.attention(hidden.squeeze(0), encoder_outputs) # [batch_size, src_len]
         a = a.unsqueeze(1) # [batch_size, 1, src_len]
         
-        weighted = torch.bmm(0, encoder_outputs)
+        weighted = torch.bmm(a, encoder_outputs)
 
-        rnn_input = torch.car((embedded, weighted), dim=2) 
+        rnn_input = torch.cat((embedded, weighted), dim=2) 
         
         output, (hidden,cell) = self.lstm(rnn_input, (hidden, cell))
         
@@ -101,7 +103,7 @@ class Seq2Seq(nn.Module):
         
         encoder_outputs, hidden, cell = self.encoder(src)
         
-        input_token = tgt[:,0]
+        input_token = tgt[:, 0]
         
         for t in range(1, tgt_len):
             
