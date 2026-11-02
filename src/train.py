@@ -42,8 +42,8 @@ MODEL_SAVE_PATH = "saved_model/askgen_lstm_attention.pth"
 # ==========================================
 print("Chargement du dataset...")
 # On charge un sous-ensemble pour que l'entraînement soit raisonnable
-raw_train = load_dataset("rajpurkar/squad", split="train[:5000]", cache_dir="./data")
-raw_val = load_dataset("rajpurkar/squad", split="validation[:1000]", cache_dir="./data")
+raw_train = load_dataset("rajpurkar/squad", split="train[:20000]", cache_dir="./data")
+raw_val = load_dataset("rajpurkar/squad", split="validation[:2000]", cache_dir="./data")
 
 print("Construction du vocabulaire...")
 vocab = Vocab()

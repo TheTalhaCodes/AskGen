@@ -22,7 +22,7 @@ class Vocab:
         self.end_token = "<end>"
         self.sep_token = "<sep>"
         
-        # On initialise le dictionnaire avec nos tokens spéciaux
+        # initialise le dictionnaire avec nos tokens spéciaux
         self.word2id = {
             self.pad_token: 0, 
             self.unk_token: 1, 
