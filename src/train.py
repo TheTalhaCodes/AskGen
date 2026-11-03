@@ -7,6 +7,7 @@ from tqdm import tqdm
 import time
 import os
 import sys
+import json
 
 # Permet d'importer les fichiers du dossier src
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -139,6 +140,10 @@ def evaluate(model, dataloader, criterion):
 if __name__ == "__main__":
     print("\nDébut de l'entraînement ! 🚀")
     
+    history = {
+        "train_loss": [],
+        "val_loss": []
+        }
     for epoch in range(NUM_EPOCHS):
         start_time = time.time()
         
@@ -151,7 +156,16 @@ if __name__ == "__main__":
         print(f"\nÉpoque {epoch+1}/{NUM_EPOCHS} | Temps: {int(epoch_mins)}m {int(epoch_secs)}s")
         print(f"Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
         
-        # Sauvegarde du modèle
+         # 1. On ajoute les valeurs au dictionnaire
+        history["train_loss"].append(train_loss)
+        history["val_loss"].append(val_loss)
+        
+        # 2. On sauvegarde le dictionnaire dans un fichier JSON
+        # On le met dans le même dossier que le modèle (sur le Drive)
+        json_path = os.path.join(os.path.dirname(MODEL_SAVE_PATH), "history.json")
+        with open(json_path, "w") as f:
+            json.dump(history, f, indent=4)
+    
                 # Sauvegarde du modèle
         # On extrait le dossier parent du chemin complet (ex: /content/drive/MyDrive/AskGen_Models)
         save_dir = os.path.dirname(MODEL_SAVE_PATH)
