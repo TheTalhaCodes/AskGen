@@ -35,15 +35,15 @@ MAX_SRC_LEN = 100
 MAX_TGT_LEN = 20
 
 # Nom du fichier de sauvegarde
-MODEL_SAVE_PATH = "saved_model/askgen_lstm_attention.pth"
-
+#MODEL_SAVE_PATH = "saved_model/askgen_lstm_attention.pth"
+MODEL_SAVE_PATH = "/content/drive/MyDrive/AskGen_Models/askgen_lstm_attention.pth"
 # ==========================================
 # 2. CHARGEMENT DES DONNÉES
 # ==========================================
 print("Chargement du dataset...")
 # On charge un sous-ensemble pour que l'entraînement soit raisonnable
-raw_train = load_dataset("rajpurkar/squad", split="train[:20000]", cache_dir="./data")
-raw_val = load_dataset("rajpurkar/squad", split="validation[:2000]", cache_dir="./data")
+raw_train = load_dataset("rajpurkar/squad", split="train[:20000]", cache_dir="/content/data_local")
+raw_val = load_dataset("rajpurkar/squad", split="validation[:2000]", cache_dir="/content/data_local")
 
 print("Construction du vocabulaire...")
 vocab = Vocab()
@@ -152,7 +152,10 @@ if __name__ == "__main__":
         print(f"Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f}")
         
         # Sauvegarde du modèle
-        os.makedirs("saved_model", exist_ok=True)
+                # Sauvegarde du modèle
+        # On extrait le dossier parent du chemin complet (ex: /content/drive/MyDrive/AskGen_Models)
+        save_dir = os.path.dirname(MODEL_SAVE_PATH)
+        os.makedirs(save_dir, exist_ok=True) # Crée le dossier s'il n'existe pas
         torch.save({
             'model_state_dict': model.state_dict(),
             'vocab_word2id': vocab.word2id,
