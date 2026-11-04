@@ -21,7 +21,7 @@ from src.model import Encoder, Attention, Decoder, Seq2Seq
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Utilisation de l'appareil : {DEVICE}")
 
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 LEARNING_RATE = 0.001
 NUM_EPOCHS = 10
 
